@@ -1,0 +1,442 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #fff;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+header {
+    text-align: center;
+    padding: 30px 0;
+    border-bottom: 3px solid #d4af37;
+    margin-bottom: 30px;
+}
+
+.logo {
+    font-size: 3.5em;
+    font-weight: bold;
+    text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+}
+
+.logo .nukuzera {
+    color: #000;
+    text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff;
+}
+
+.logo .bet {
+    color: #ff0000;
+}
+
+.saldo-container {
+    background: linear-gradient(135deg, #d4af37 0%, #f4e5b7 100%);
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    margin-bottom: 30px;
+    box-shadow: 0 5px 20px rgba(212, 175, 55, 0.3);
+}
+
+.saldo {
+    font-size: 2em;
+    color: #1a1a2e;
+    font-weight: bold;
+}
+
+.stats {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 10px;
+    color: #1a1a2e;
+}
+
+.jogos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.jogo-card {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+    padding: 30px;
+    border-radius: 15px;
+    border: 2px solid #d4af37;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+}
+
+.jogo-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(212, 175, 55, 0.4);
+    border-color: #f4e5b7;
+}
+
+.jogo-icon {
+    font-size: 4em;
+    margin-bottom: 15px;
+}
+
+.jogo-nome {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #d4af37;
+}
+
+.jogo-desc {
+    color: #aaa;
+    font-size: 0.9em;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+    margin: 50px auto;
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 600px;
+    border: 2px solid #d4af37;
+    position: relative;
+}
+
+.close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 2em;
+    cursor: pointer;
+    color: #d4af37;
+}
+
+.close:hover {
+    color: #ff0000;
+}
+
+.btn {
+    background: linear-gradient(135deg, #d4af37 0%, #f4e5b7 100%);
+    color: #1a1a2e;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.1em;
+    font-weight: bold;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 10px 5px;
+    transition: all 0.3s;
+}
+
+.btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+    color: #fff;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 2px solid #d4af37;
+    background: #1a1a2e;
+    color: #fff;
+    font-size: 1em;
+}
+
+.resultado {
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 10px;
+    font-size: 1.2em;
+    text-align: center;
+}
+
+.ganhou {
+    background: rgba(0, 255, 0, 0.2);
+    border: 2px solid #00ff00;
+}
+
+.perdeu {
+    background: rgba(255, 0, 0, 0.2);
+    border: 2px solid #ff0000;
+}
+
+.slot-container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.slot-reel {
+    width: 100px;
+    height: 100px;
+    background: #1a1a2e;
+    border: 3px solid #d4af37;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3em;
+}
+
+.combinacoes-slots {
+    background: rgba(212, 175, 55, 0.1);
+    border: 2px solid #d4af37;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+.combinacao-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    margin: 5px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+}
+
+.cartela-bingo {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    margin: 20px 0;
+}
+
+.numero-bingo {
+    background: #1a1a2e;
+    border: 2px solid #d4af37;
+    padding: 15px;
+    text-align: center;
+    border-radius: 5px;
+    font-size: 1.2em;
+}
+
+.numero-bingo.marcado {
+    background: #00ff00;
+    color: #000;
+}
+
+.cartas-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.carta {
+    width: 60px;
+    height: 90px;
+    background: #fff;
+    color: #000;
+    border: 2px solid #d4af37;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.roleta-numero {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2em;
+    font-weight: bold;
+    margin: 20px auto;
+    border: 4px solid #d4af37;
+}
+
+.vermelho {
+    background: #ff0000;
+}
+
+.preto {
+    background: #000;
+}
+
+.alerta-vicio {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+    padding: 50px;
+    border-radius: 20px;
+    border: 5px solid #fff;
+    z-index: 2000;
+    text-align: center;
+    font-size: 2em;
+    font-weight: bold;
+    box-shadow: 0 0 50px rgba(255, 0, 0, 0.8);
+    animation: pulsar 1s infinite;
+}
+
+@keyframes pulsar {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.05); }
+}
+
+/* Estilos do Ranking */
+.ranking-lista {
+    margin: 20px 0;
+}
+
+.ranking-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    margin: 10px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid #d4af37;
+    border-radius: 10px;
+    transition: all 0.3s;
+}
+
+.ranking-item:hover {
+    transform: translateX(5px);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.ranking-item.top1 {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(212, 175, 55, 0.2) 100%);
+    border-color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.ranking-item.top2 {
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.2) 0%, rgba(169, 169, 169, 0.2) 100%);
+    border-color: #c0c0c0;
+}
+
+.ranking-item.top3 {
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.2) 0%, rgba(184, 115, 51, 0.2) 100%);
+    border-color: #cd7f32;
+}
+
+.ranking-posicao {
+    font-size: 2em;
+    font-weight: bold;
+    min-width: 50px;
+    text-align: center;
+}
+
+.ranking-info {
+    flex: 1;
+}
+
+.ranking-nome {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #d4af37;
+    margin-bottom: 5px;
+}
+
+.ranking-stats {
+    font-size: 0.85em;
+    color: #aaa;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.ranking-saldo {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #00ff00;
+    min-width: 120px;
+    text-align: right;
+}
+
+.ranking-tempo {
+    text-align: center;
+    color: #d4af37;
+    font-size: 0.9em;
+    margin-top: 5px;
+    padding: 5px;
+    background: rgba(212, 175, 55, 0.1);
+    border-radius: 5px;
+}
+
+/* Estilos do Código Promocional */
+.codigo-sucesso {
+    background: linear-gradient(135deg, rgba(0, 255, 0, 0.2) 0%, rgba(0, 200, 0, 0.2) 100%);
+    border: 2px solid #00ff00;
+    border-radius: 10px;
+    padding: 30px;
+    margin: 20px 0;
+    animation: sucessoPulse 2s ease-in-out;
+}
+
+.codigo-erro {
+    background: linear-gradient(135deg, rgba(255, 0, 0, 0.2) 0%, rgba(200, 0, 0, 0.2) 100%);
+    border: 2px solid #ff0000;
+    border-radius: 10px;
+    padding: 30px;
+    margin: 20px 0;
+}
+
+@keyframes sucessoPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .logo {
+        font-size: 2.5em;
+    }
+    
+    .jogos-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ranking-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .ranking-stats {
+        justify-content: center;
+    }
+    
+    .ranking-saldo {
+        text-align: center;
+    }
+}

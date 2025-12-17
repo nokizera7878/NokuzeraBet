@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NokuzeraBet - Cassino Online</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <span class="nukuzera">Nukuzera</span><span class="bet">Bet</span>
+            </div>
+            <p style="color: #d4af37; margin-top: 10px; font-size: 1.2em;">🎰 O Melhor Cassino Online 🎰</p>
+        </header>
+
+        <div class="saldo-container">
+            <div class="saldo">💰 R$ <span id="saldo">1000</span></div>
+            <div class="stats">
+                <div>🎮 Jogos: <span id="jogos">0</span></div>
+                <div>🏆 Vitórias: <span id="vitorias">0</span></div>
+            </div>
+        </div>
+
+        <div class="jogos-grid">
+            <div class="jogo-card" onclick="abrirJogo('roleta')">
+                <div class="jogo-icon">🎡</div>
+                <div class="jogo-nome">Roleta</div>
+                <div class="jogo-desc">Aposte em números ou cores</div>
+            </div>
+
+            <div class="jogo-card" onclick="abrirJogo('blackjack')">
+                <div class="jogo-icon">🃏</div>
+                <div class="jogo-nome">Blackjack</div>
+                <div class="jogo-desc">Chegue em 21 sem estourar</div>
+            </div>
+
+            <div class="jogo-card" onclick="abrirJogo('slots')">
+                <div class="jogo-icon">🎰</div>
+                <div class="jogo-nome">Caça-Níqueis</div>
+                <div class="jogo-desc">Três símbolos iguais</div>
+            </div>
+
+            <div class="jogo-card" onclick="abrirJogo('dados')">
+                <div class="jogo-icon">🎲</div>
+                <div class="jogo-nome">Dados</div>
+                <div class="jogo-desc">Aposte no resultado</div>
+            </div>
+
+            <div class="jogo-card" onclick="abrirJogo('bingo')">
+                <div class="jogo-icon">🎱</div>
+                <div class="jogo-nome">Bingo</div>
+                <div class="jogo-desc">Complete sua cartela</div>
+            </div>
+
+            <div class="jogo-card" onclick="adicionarFichas()">
+                <div class="jogo-icon">💸</div>
+                <div class="jogo-nome">Adicionar Fichas</div>
+                <div class="jogo-desc">Recarregue seu saldo</div>
+            </div>
+
+            <div class="jogo-card" onclick="abrirJogo('ranking')">
+                <div class="jogo-icon">🏆</div>
+                <div class="jogo-nome">Ranking</div>
+                <div class="jogo-desc">Top jogadores online</div>
+            </div>
+
+            <div class="jogo-card" onclick="abrirJogo('codigo')">
+                <div class="jogo-icon">🎁</div>
+                <div class="jogo-nome">Código Promocional</div>
+                <div class="jogo-desc">Resgate seu bônus</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Roleta -->
+    <div id="modalRoleta" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModal('modalRoleta')">&times;</span>
+            <h2 style="color: #d4af37; margin-bottom: 20px;">🎡 ROLETA</h2>
+            <input type="number" id="apostaRoleta" placeholder="Valor da aposta">
+            <select id="tipoRoleta">
+                <option value="numero">Número específico (35x)</option>
+                <option value="cor">Vermelho/Preto (2x)</option>
+                <option value="paridade">Par/Ímpar (2x)</option>
+            </select>
+            <div id="opcaoRoleta"></div>
+            <button class="btn" onclick="jogarRoleta()">GIRAR ROLETA</button>
+            <div id="resultadoRoleta"></div>
+        </div>
+    </div>
+
+    <!-- Modal Blackjack -->
+    <div id="modalBlackjack" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModal('modalBlackjack')">&times;</span>
+            <h2 style="color: #d4af37; margin-bottom: 20px;">🃏 BLACKJACK</h2>
+            <input type="number" id="apostaBlackjack" placeholder="Valor da aposta">
+            <button class="btn" onclick="iniciarBlackjack()">COMEÇAR JOGO</button>
+            <div id="areaBlackjack"></div>
+        </div>
+    </div>
+
+    <!-- Modal Slots -->
+    <div id="modalSlots" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModal('modalSlots')">&times;</span>
+            <h2 style="color: #d4af37; margin-bottom: 20px;">🎰 CAÇA-NÍQUEIS</h2>
+            
+            <div class="combinacoes-slots">
+                <h3 style="color: #d4af37; margin-bottom: 10px;">💰 Tabela de Prêmios:</h3>
+                <div class="combinacao-item">
+                    <span>💎 💎 💎 💎</span>
+                    <span style="color: #00ff00; font-weight: bold;">100x</span>
+                </div>
+                <div class="combinacao-item">
+                    <span>7️⃣ 7️⃣ 7️⃣ 7️⃣</span>
+                    <span style="color: #00ff00; font-weight: bold;">50x</span>
+                </div>
+                <div class="combinacao-item">
+                    <span>⭐ ⭐ ⭐ ⭐</span>
+                    <span style="color: #ffff00; font-weight: bold;">30x</span>
+                </div>
+                <div class="combinacao-item">
+                    <span>🍒 🍒 🍒 🍒 / 🍋 🍋 🍋 🍋 / 🍊 🍊 🍊 🍊</span>
+                    <span style="color: #ffff00; font-weight: bold;">20x</span>
+                </div>
+                <div class="combinacao-item">
+                    <span>3 símbolos iguais</span>
+                    <span style="color: #ffa500; font-weight: bold;">5x</span>
+                </div>
+                <div class="combinacao-item">
+                    <span>2 símbolos iguais</span>
+                    <span style="color: #ffa500; font-weight: bold;">2x</span>
+                </div>
+            </div>
+
+            <input type="number" id="apostaSlots" placeholder="Valor da aposta">
+            <button class="btn" onclick="jogarSlots()">GIRAR</button>
+            <div class="slot-container">
+                <div class="slot-reel" id="slot1">🍒</div>
+                <div class="slot-reel" id="slot2">🍋</div>
+                <div class="slot-reel" id="slot3">🍊</div>
+                <div class="slot-reel" id="slot4">🍇</div>
+            </div>
+            <div id="resultadoSlots"></div>
+        </div>
+    </div>
+
+    <!-- Modal Dados -->
+    <div id="modalDados" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModal('modalDados')">&times;</span>
+            <h2 style="color: #d4af37; margin-bottom: 20px;">🎲 DADOS</h2>
+            <input type="number" id="apostaDados" placeholder="Valor da aposta">
+            <select id="tipoDados">
+                <option value="soma">Soma específica (30x)</option>
+                <option value="maior">Maior que 7 (2x)</option>
+                <option value="menor">Menor que 7 (2x)</option>
+                <option value="sete">Igual a 7 (5x)</option>
+            </select>
+            <div id="opcaoDados"></div>
+            <button class="btn" onclick="jogarDados()">ROLAR DADOS</button>
+            <div id="resultadoDados"></div>
+        </div>
+    </div>
+
+    <!-- Modal Bingo -->
+    <div id="modalBingo" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModal('modalBingo')">&times;</span>
+            <h2 style="color: #d4af37; margin-bottom: 20px;">🎱 BINGO</h2>
+            <input type="number" id="apostaBingo" placeholder="Valor da aposta">
+            <button class="btn" onclick="iniciarBingo()">COMEÇAR JOGO</button>
+            <div id="areaBingo"></div>
+        </div>
+    </div>
+
+    <!-- Modal Ranking -->
+    <div id="modalRanking" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="fecharModal('modalRanking')">&times;</span>
+            <h2 style="color: #d4af37; margin-bottom: 20px;">🏆 RANKING TOP JOGADORES</h2>
+            
+            <div style="margin-bottom: 20px;">
+                <input type="text" id="nomeJogador" placeholder="Digite seu nome para entrar no ranking" style="margin-bottom: 10px;">
+                <button class="btn" onclick="entrarRanking()">ENTRAR NO RANKING</button>
+            </div>
+            
+            <div id="areaRanking"></div>
+        </div>
+    </div>
+
+    <!-- Modal Código Promocional -->
+    <div id="modalCodigo" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModal('modalCodigo')">&times;</span>
+            <h2 style="color: #d4af37; margin-bottom: 20px;">🎁 CÓDIGO PROMOCIONAL</h2>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <p style="color: #aaa; margin-bottom: 20px;">Insira seu código promocional abaixo para receber bônus exclusivos!</p>
+                <input type="text" id="codigoPromocional" placeholder="Digite o código" style="text-align: center; font-size: 1.2em; text-transform: uppercase;" maxlength="10">
+                <button class="btn" onclick="validarCodigo()">RESGATAR CÓDIGO</button>
+            </div>
+            
+            <div id="resultadoCodigo"></div>
+            
+            <div style="margin-top: 30px; padding: 20px; background: rgba(212, 175, 55, 0.1); border-radius: 10px; border: 1px solid #d4af37;">
+                <p style="color: #d4af37; font-weight: bold; margin-bottom: 10px;">💡 Dica:</p>
+                <p style="color: #aaa; font-size: 0.9em;">Procure por códigos especiais nas redes sociais ou eventos do NokuzeraBet!</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
