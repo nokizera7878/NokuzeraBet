@@ -95,6 +95,7 @@ function gerarIdUnico() {
 async function salvarRankingGlobalAPI(jogador) {
     try {
         console.log('🌐 Salvando jogador no ranking online:', jogador.nome);
+        console.log('🔍 DEBUG: Dados completos do jogador:', jogador);
         
         // Lista de APIs para tentar (fallback)
         const apis = [
@@ -142,6 +143,7 @@ async function salvarRankingGlobalAPI(jogador) {
         // Se nenhuma API funcionou, usa localStorage expandido
         if (!apiUsada) {
             console.log('🔄 Usando sistema de backup localStorage expandido');
+            usarRankingLocal = true;
             return await salvarRankingBackup(jogador);
         }
         
@@ -318,6 +320,7 @@ async function carregarRankingGlobal() {
                     rankingData = data.record?.jogadores || [];
                     apiConectada = true;
                     console.log(`✅ Ranking carregado via ${api.name}:`, rankingData.length, 'jogadores');
+                    usarRankingLocal = false;
                     break;
                 }
             } catch (e) {
@@ -329,6 +332,7 @@ async function carregarRankingGlobal() {
         // Se nenhuma API funcionou, usa sistema de backup
         if (!apiConectada) {
             console.log('🔄 Carregando via sistema de backup...');
+            usarRankingLocal = true;
             return await carregarRankingBackup();
         }
         
@@ -431,6 +435,147 @@ function carregarRanking() {
 }
 
 function entrarRanking() {
+    console.log('🔍 DEBUG: Iniciando entrarRanking()');
+    
+    // Verifica se o jogador está bloqueado
+    const bloqueio = localStorage.getItem('nukuzerabetBloqueioRanking');
+    if (bloqueio) {
+        const tempoBloqueio = parseInt(bloqueio);
+        const tempoRestante = tempoBloqueio - Date.now();
+        
+        if (tempoRestante > 0) {
+            const horasRestantes = Math.ceil(tempoRestante / (1000 * 60 * 60));
+            alert(`🚫 Você está bloqueado do ranking!\n\nTempo restante: ${horasRestantes} horas\n\nMotivo: Adicionou fichas demais (vício em jogos)\n\n⚠️ Procure ajuda profissional!`);
+            return;
+        } else {
+            // Remove o bloqueio se já passou o tempo
+            localStorage.removeItem('nukuzerabetBloqueioRanking');
+            console.log('✅ Bloqueio expirado, removido automaticamente');
+        }
+    }
+    
+    const nome = document.getElementById('nomeJogador').value.trim();
+    console.log('🔍 DEBUG: Nome digitado:', nome);
+    
+    if (!nome) {
+        alert('Digite seu nome!');
+        return;
+    }
+    
+    nomeJogadorRanking = nome;
+    console.log('🔍 DEBUG: Nome salvo:', nomeJogadorRanking);
+    
+    // Cria o jogador diretamente
+    const jogador = {
+        nome: nomeJogadorRanking,
+        saldo: saldo,
+        jogos: jogosJogados,
+        vitorias: vitorias,
+        timestamp: Date.now(),
+        id: nomeJogadorRanking + '_' + Date.now()
+    };
+    
+    console.log('🔍 DEBUG: Jogador criado:', jogador);
+    
+    // Salva diretamente no localStorage simples
+    let ranking = JSON.parse(localStorage.getItem('nukuzerabetRankingSimples') || '[]');
+    console.log('🔍 DEBUG: Ranking atual:', ranking);
+    
+    // Remove entrada antiga
+    ranking = ranking.filter(j => j.nome !== jogador.nome);
+    
+    // Adiciona nova entrada
+    ranking.push(jogador);
+    
+    // Salva
+    localStorage.setItem('nukuzerabetRankingSimples', JSON.stringify(ranking));
+    console.log('🔍 DEBUG: Ranking salvo:', ranking);
+    
+    salvarDados();
+    mostrarRankingSimples();
+    alert('Você entrou no ranking!');
+}
+
+function mostrarRankingSimples() {
+    console.log('🔍 DEBUG: Iniciando mostrarRankingSimples()');
+    
+    // Carrega ranking simples
+    let ranking = JSON.parse(localStorage.getItem('nukuzerabetRankingSimples') || '[]');
+    console.log('🔍 DEBUG: Ranking carregado:', ranking);
+    
+    // Ordena por saldo
+    ranking = ranking.sort((a, b) => b.saldo - a.saldo);
+    
+    let html = '<div style="background: rgba(0,255,0,0.2); border: 1px solid #00ff00; border-radius: 5px; padding: 10px; margin-bottom: 15px; text-align: center;"><p style="color: #00ff00; margin: 0;">💾 RANKING SIMPLES ATIVO</p></div>';
+    
+    html += '<div class="ranking-lista">';
+    
+    if (ranking.length === 0) {
+        html += '<p style="text-align: center; color: #aaa; padding: 40px;">Nenhum jogador no ranking ainda. Seja o primeiro!</p>';
+        console.log('🔍 DEBUG: Ranking vazio');
+    } else {
+        console.log('🔍 DEBUG: Mostrando', ranking.length, 'jogadores');
+        
+        ranking.forEach((jogador, index) => {
+            const posicao = index + 1;
+            let emoji = '';
+            
+            if (posicao === 1) emoji = '🥇';
+            else if (posicao === 2) emoji = '🥈';
+            else if (posicao === 3) emoji = '🥉';
+            
+            const taxaVitoria = jogador.jogos > 0 ? ((jogador.vitorias / jogador.jogos) * 100).toFixed(1) : 0;
+            
+            html += `
+                <div class="ranking-item">
+                    <div class="ranking-posicao">${emoji || posicao + 'º'}</div>
+                    <div class="ranking-info">
+                        <div class="ranking-nome">${jogador.nome}</div>
+                        <div class="ranking-stats">
+                            🎮 ${jogador.jogos} jogos | 🏆 ${jogador.vitorias} vitórias | 📊 ${taxaVitoria}% win rate
+                        </div>
+                    </div>
+                    <div class="ranking-saldo">R$ ${jogador.saldo}</div>
+                </div>
+            `;
+        });
+    }
+    
+    html += '</div>';
+    
+    // Verifica se há bloqueio ativo
+    const bloqueio = localStorage.getItem('nukuzerabetBloqueioRanking');
+    if (bloqueio) {
+        const tempoBloqueio = parseInt(bloqueio);
+        const tempoRestante = tempoBloqueio - Date.now();
+        
+        if (tempoRestante > 0) {
+            const horasRestantes = Math.ceil(tempoRestante / (1000 * 60 * 60));
+            html += `
+                <div style="background: rgba(255,0,0,0.2); border: 2px solid #ff4444; border-radius: 10px; padding: 15px; margin: 20px 0; text-align: center;">
+                    <h3 style="color: #ff4444; margin: 0 0 10px 0;">🚫 BLOQUEADO DO RANKING</h3>
+                    <p style="margin: 5px 0;">Tempo restante: <strong>${horasRestantes} horas</strong></p>
+                    <p style="margin: 5px 0; font-size: 0.9em;">Motivo: Adicionou fichas demais (vício em jogos)</p>
+                    <p style="margin: 10px 0 0 0; font-size: 0.8em; color: #ffaa00;">⚠️ Procure ajuda profissional para vício em jogos!</p>
+                </div>
+            `;
+        } else {
+            // Remove o bloqueio se já passou o tempo
+            localStorage.removeItem('nukuzerabetBloqueioRanking');
+        }
+    }
+    
+    if (nomeJogadorRanking && (!bloqueio || parseInt(bloqueio) <= Date.now())) {
+        html += '<button class="btn" onclick="atualizarPosicaoSimples()">ATUALIZAR MINHA POSIÇÃO</button>';
+    }
+    
+    document.getElementById('areaRanking').innerHTML = html;
+    console.log('🔍 DEBUG: HTML do ranking definido');
+}
+
+function atualizarPosicaoSimples() {
+    console.log('🔍 DEBUG: Atualizando posição simples');
+    
     // Verifica se o jogador está bloqueado
     const bloqueio = localStorage.getItem('nukuzerabetBloqueioRanking');
     if (bloqueio) {
@@ -447,22 +592,36 @@ function entrarRanking() {
         }
     }
     
-    const nome = document.getElementById('nomeJogador').value.trim();
-    if (!nome) {
-        alert('Digite seu nome!');
+    if (!nomeJogadorRanking) {
+        alert('Você precisa entrar no ranking primeiro!');
         return;
     }
     
-    nomeJogadorRanking = nome;
-    salvarDados();
-    salvarNoRanking();
-    mostrarRanking();
-    alert('Você entrou no ranking!');
+    // Cria o jogador com dados atuais
+    const jogador = {
+        nome: nomeJogadorRanking,
+        saldo: saldo,
+        jogos: jogosJogados,
+        vitorias: vitorias,
+        timestamp: Date.now(),
+        id: nomeJogadorRanking + '_' + Date.now()
+    };
+    
+    // Salva no ranking
+    let ranking = JSON.parse(localStorage.getItem('nukuzerabetRankingSimples') || '[]');
+    ranking = ranking.filter(j => j.nome !== jogador.nome);
+    ranking.push(jogador);
+    localStorage.setItem('nukuzerabetRankingSimples', JSON.stringify(ranking));
+    
+    mostrarRankingSimples();
+    alert('Posição atualizada! Saldo: R$ ' + saldo);
 }
 
 async function mostrarRanking() {
     // Mostra loading primeiro
     document.getElementById('areaRanking').innerHTML = '<div style="text-align: center; padding: 40px;"><p style="color: #d4af37;">🔄 Conectando ao ranking online...</p></div>';
+    
+    console.log('🌐 Iniciando mostrarRanking() - Modo Online');
     
     // Se o jogador tem nome no ranking, força uma atualização primeiro
     if (nomeJogadorRanking) {
@@ -475,6 +634,8 @@ async function mostrarRanking() {
     }
     
     const ranking = await carregarRankingGlobal();
+    console.log('🏆 Ranking carregado:', ranking);
+    
     // Indicador de status do ranking
     let statusRanking;
     if (usarRankingLocal) {
@@ -543,7 +704,7 @@ async function mostrarRanking() {
                     <h3 style="color: #ff4444; margin: 0 0 10px 0;">🚫 BLOQUEADO DO RANKING</h3>
                     <p style="margin: 5px 0;">Tempo restante: <strong>${horasRestantes} horas</strong></p>
                     <p style="margin: 5px 0; font-size: 0.9em;">Motivo: Adicionou fichas demais (vício em jogos)</p>
-                    <p style="margin: 10px 0 0 0; font-size: 0.8em; color: #ffaa00;">Procure ajuda profissional para vício em jogos!</p>
+                    <p style="margin: 10px 0 0 0; font-size: 0.8em; color: #ffaa00;">⚠️ Procure ajuda profissional para vício em jogos!</p>
                 </div>
             `;
         } else {
@@ -1097,15 +1258,35 @@ function adicionarFichas() {
     vezesFichasAdicionadas++;
     
     if (vezesFichasAdicionadas >= 4) {
-        // Remove o jogador do ranking
+        // Remove o jogador de TODOS os rankings
         if (nomeJogadorRanking) {
+            // Remove do ranking simples
+            let rankingSimples = JSON.parse(localStorage.getItem('nukuzerabetRankingSimples') || '[]');
+            rankingSimples = rankingSimples.filter(j => j.nome !== nomeJogadorRanking);
+            localStorage.setItem('nukuzerabetRankingSimples', JSON.stringify(rankingSimples));
+            
+            // Remove do ranking tradicional
             let rankingData = JSON.parse(localStorage.getItem('nukuzerabetRanking') || '[]');
             rankingData = rankingData.filter(j => j.nome !== nomeJogadorRanking);
             localStorage.setItem('nukuzerabetRanking', JSON.stringify(rankingData));
             
+            // Remove dos rankings de backup
+            const chaves = ['nukuzera_ranking_br_1', 'nukuzera_ranking_br_2', 'nukuzera_ranking_br_3'];
+            chaves.forEach(chave => {
+                try {
+                    let dados = JSON.parse(localStorage.getItem(chave) || '[]');
+                    dados = dados.filter(j => j.nome !== nomeJogadorRanking);
+                    localStorage.setItem(chave, JSON.stringify(dados));
+                } catch (e) {
+                    console.log('Erro ao limpar chave', chave);
+                }
+            });
+            
             // Bloqueia o jogador por 24 horas
             const bloqueioAte = Date.now() + (24 * 60 * 60 * 1000); // 24 horas
             localStorage.setItem('nukuzerabetBloqueioRanking', bloqueioAte.toString());
+            
+            console.log('🚫 Jogador bloqueado:', nomeJogadorRanking, 'até', new Date(bloqueioAte));
             
             // Remove o nome do ranking atual
             nomeJogadorRanking = null;
