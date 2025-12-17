@@ -11,8 +11,8 @@ let codigosUsados = [];
 let boostSorteAtivo = false;
 let boostSorteExpira = 0;
 
-// Configuração do ranking global usando uma API pública simples
-const RANKING_GLOBAL_URL = 'https://httpbin.org/anything/nukuzerabet-ranking';
+// Configuração do ranking online usando Firebase Realtime Database (gratuito)
+const FIREBASE_URL = 'https://nukuzerabet-ranking-default-rtdb.firebaseio.com/ranking.json';
 
 // Fallback para ranking local se API não funcionar
 let usarRankingLocal = false;
@@ -75,8 +75,9 @@ async function salvarNoRankingGlobal() {
     };
     
     try {
-        // Tenta salvar no ranking global usando uma API pública
+        // Sempre salva no ranking global simulado
         await salvarRankingGlobalAPI(jogador);
+        console.log('Jogador salvo no ranking global:', jogador.nome, 'R$', jogador.saldo);
     } catch (error) {
         console.log('Erro ao salvar no ranking global, usando local:', error);
         // Fallback para ranking local
@@ -89,20 +90,24 @@ function gerarIdUnico() {
     return nomeJogadorRanking + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
-// Sistema de ranking global simulado usando localStorage expandido
+// Sistema de ranking online usando Firebase Realtime Database (gratuito)
 async function salvarRankingGlobalAPI(jogador) {
     try {
-        // Simula um ranking global usando uma chave especial no localStorage
-        // Em um ambiente real, isso seria uma API verdadeira
-        const chaveGlobal = 'nukuzerabetRankingGlobal_' + window.location.hostname;
+        console.log('Salvando jogador no ranking online:', jogador.nome);
         
+        // URL do Firebase Realtime Database (gratuito, sem autenticação)
+        const firebaseUrl = FIREBASE_URL;
+        
+        // Primeiro, carrega o ranking atual
         let rankingData = [];
         try {
-            const dadosExistentes = localStorage.getItem(chaveGlobal);
-            if (dadosExistentes) {
-                rankingData = JSON.parse(dadosExistentes);
+            const response = await fetch(firebaseUrl);
+            if (response.ok) {
+                const data = await response.json();
+                rankingData = data ? Object.values(data) : [];
             }
         } catch (e) {
+            console.log('Erro ao carregar ranking da API, criando novo:', e);
             rankingData = [];
         }
         
@@ -119,12 +124,33 @@ async function salvarRankingGlobalAPI(jogador) {
         // Mantém apenas top 50 para não sobrecarregar
         rankingData = rankingData.sort((a, b) => b.saldo - a.saldo).slice(0, 50);
         
-        // Salva de volta
-        localStorage.setItem(chaveGlobal, JSON.stringify(rankingData));
+        // Converte array para objeto para Firebase
+        const rankingObject = {};
+        rankingData.forEach((jogador, index) => {
+            rankingObject[jogador.id || `jogador_${index}`] = jogador;
+        });
         
-        console.log('Ranking global simulado atualizado com sucesso!');
+        // Salva o ranking atualizado na API
+        const updateResponse = await fetch(firebaseUrl, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(rankingObject)
+        });
+        
+        if (updateResponse.ok) {
+            console.log('Ranking online atualizado com sucesso! Total de jogadores:', rankingData.length);
+            usarRankingLocal = false;
+        } else {
+            throw new Error('Falha ao atualizar ranking online');
+        }
         
     } catch (error) {
+        console.error('Erro ao salvar no ranking online:', error);
+        usarRankingLocal = true;
+        // Fallback para ranking local
+        salvarNoRankingLocal(jogador);
         throw error;
     }
 }
@@ -153,31 +179,64 @@ function salvarNoRanking() {
     salvarNoRankingGlobal();
 }
 
-// Função para carregar ranking global simulado
+// Função para carregar ranking online real
 async function carregarRankingGlobal() {
     try {
-        // Simula carregamento do ranking global
-        const chaveGlobal = 'nukuzerabetRankingGlobal_' + window.location.hostname;
+        console.log('Carregando ranking online...');
         
-        let rankingData = [];
-        try {
-            const dadosExistentes = localStorage.getItem(chaveGlobal);
-            if (dadosExistentes) {
-                rankingData = JSON.parse(dadosExistentes);
-            }
-        } catch (e) {
-            rankingData = [];
+        // Se está usando ranking local, não tenta a API
+        if (usarRankingLocal) {
+            console.log('Usando ranking local (API indisponível)');
+            return carregarRankingLocal();
         }
+        
+        const firebaseUrl = FIREBASE_URL;
+        const response = await fetch(firebaseUrl);
+        
+        if (!response.ok) {
+            throw new Error('Falha ao carregar ranking da API');
+        }
+        
+        const data = await response.json();
+        let rankingData = data ? Object.values(data) : [];
+        
+        console.log('Ranking online carregado:', rankingData.length, 'jogadores');
         
         // Remove jogadores com mais de 4 horas
         const quatroHorasAtras = Date.now() - (4 * 60 * 60 * 1000);
-        rankingData = rankingData.filter(j => j.timestamp > quatroHorasAtras);
+        const rankingFiltrado = rankingData.filter(j => j.timestamp > quatroHorasAtras);
+        
+        // Se removeu jogadores expirados, atualiza a API
+        if (rankingFiltrado.length !== rankingData.length) {
+            console.log('Limpando jogadores expirados do ranking online...');
+            try {
+                const rankingObject = {};
+                rankingFiltrado.forEach((jogador, index) => {
+                    rankingObject[jogador.id || `jogador_${index}`] = jogador;
+                });
+                
+                await fetch(firebaseUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(rankingObject)
+                });
+            } catch (e) {
+                console.log('Erro ao limpar ranking online:', e);
+            }
+        }
         
         // Ordena por saldo e pega top 10
-        return rankingData.sort((a, b) => b.saldo - a.saldo).slice(0, 10);
+        const topRanking = rankingFiltrado.sort((a, b) => b.saldo - a.saldo).slice(0, 10);
+        console.log('Top 10 ranking online:', topRanking.map(j => `${j.nome}: R$${j.saldo}`));
+        
+        return topRanking;
         
     } catch (error) {
-        console.log('Erro ao carregar ranking global, usando local:', error);
+        console.error('Erro ao carregar ranking online:', error);
+        console.log('Fallback para ranking local');
+        usarRankingLocal = true;
         return carregarRankingLocal();
     }
 }
@@ -235,10 +294,25 @@ function entrarRanking() {
 
 async function mostrarRanking() {
     // Mostra loading primeiro
-    document.getElementById('areaRanking').innerHTML = '<div style="text-align: center; padding: 40px;"><p style="color: #d4af37;">🔄 Carregando ranking global...</p></div>';
+    document.getElementById('areaRanking').innerHTML = '<div style="text-align: center; padding: 40px;"><p style="color: #d4af37;">🔄 Conectando ao ranking online...</p></div>';
+    
+    // Se o jogador tem nome no ranking, força uma atualização primeiro
+    if (nomeJogadorRanking) {
+        console.log('Atualizando posição do jogador no ranking:', nomeJogadorRanking);
+        try {
+            await salvarNoRankingGlobal();
+        } catch (e) {
+            console.log('Erro ao atualizar posição:', e);
+        }
+    }
     
     const ranking = await carregarRankingGlobal();
-    let html = '<div class="ranking-lista">';
+    // Indicador de status do ranking
+    const statusRanking = usarRankingLocal ? 
+        '<div style="background: rgba(255,165,0,0.2); border: 1px solid #ffa500; border-radius: 5px; padding: 10px; margin-bottom: 15px; text-align: center;"><p style="color: #ffa500; margin: 0;">⚠️ MODO OFFLINE - Ranking local apenas</p></div>' :
+        '<div style="background: rgba(0,255,0,0.2); border: 1px solid #00ff00; border-radius: 5px; padding: 10px; margin-bottom: 15px; text-align: center;"><p style="color: #00ff00; margin: 0;">🌐 RANKING ONLINE ATIVO - Jogadores de todo o Brasil!</p></div>';
+    
+    let html = statusRanking + '<div class="ranking-lista">';
     
     if (ranking.length === 0) {
         html += '<p style="text-align: center; color: #aaa; padding: 40px;">Nenhum jogador no ranking ainda. Seja o primeiro!</p>';
@@ -1202,21 +1276,40 @@ async function gerenciarRanking() {
     document.getElementById('resultadoPainelDono').innerHTML = html;
 }
 
-function limparRankingGlobal() {
-    if (confirm('Tem certeza que deseja limpar todo o ranking GLOBAL? Isso afetará todos os jogadores!')) {
-        // Limpa o ranking global
-        const chaveGlobal = 'nukuzerabetRankingGlobal_' + window.location.hostname;
-        localStorage.setItem(chaveGlobal, '[]');
+async function limparRankingGlobal() {
+    if (confirm('Tem certeza que deseja limpar todo o ranking ONLINE? Isso afetará todos os jogadores do Brasil!')) {
+        try {
+            const firebaseUrl = FIREBASE_URL;
+            
+            // Limpa o ranking online
+            const response = await fetch(firebaseUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            });
+            
+            if (response.ok) {
+                document.getElementById('resultadoPainelDono').innerHTML = `
+                    <div class="codigo-sucesso">
+                        <p style="font-size: 1.3em;">✅ RANKING ONLINE LIMPO!</p>
+                        <p>Todos os jogadores foram removidos do ranking</p>
+                    </div>
+                `;
+            } else {
+                throw new Error('Falha na API');
+            }
+        } catch (error) {
+            console.error('Erro ao limpar ranking online:', error);
+            document.getElementById('resultadoPainelDono').innerHTML = `
+                <div class="codigo-erro">
+                    <p style="font-size: 1.3em;">❌ ERRO AO LIMPAR RANKING</p>
+                    <p>Falha na conexão com o servidor</p>
+                </div>
+            `;
+        }
         
-        // Também limpa o ranking local por compatibilidade
-        localStorage.setItem('nukuzerabetRanking', '[]');
-        
-        document.getElementById('resultadoPainelDono').innerHTML = `
-            <div class="codigo-sucesso">
-                <p style="font-size: 1.3em;">✅ RANKING GLOBAL LIMPO!</p>
-                <p>Todos os jogadores foram removidos do ranking</p>
-            </div>
-        `;
         setTimeout(gerenciarRanking, 2000);
     }
 }
@@ -1235,18 +1328,46 @@ function removerBloqueios() {
     `;
 }
 
-function removerJogadorRankingGlobal(nomeJogador) {
-    if (confirm(`Remover ${nomeJogador} do ranking GLOBAL?`)) {
-        // Remove do ranking global
-        const chaveGlobal = 'nukuzerabetRankingGlobal_' + window.location.hostname;
-        let rankingData = JSON.parse(localStorage.getItem(chaveGlobal) || '[]');
-        rankingData = rankingData.filter(j => j.nome !== nomeJogador);
-        localStorage.setItem(chaveGlobal, JSON.stringify(rankingData));
-        
-        // Também remove do ranking local por compatibilidade
-        let rankingLocal = JSON.parse(localStorage.getItem('nukuzerabetRanking') || '[]');
-        rankingLocal = rankingLocal.filter(j => j.nome !== nomeJogador);
-        localStorage.setItem('nukuzerabetRanking', JSON.stringify(rankingLocal));
+async function removerJogadorRankingGlobal(nomeJogador) {
+    if (confirm(`Remover ${nomeJogador} do ranking ONLINE?`)) {
+        try {
+            const firebaseUrl = FIREBASE_URL;
+            
+            // Carrega ranking atual
+            const response = await fetch(firebaseUrl);
+            
+            if (response.ok) {
+                const data = await response.json();
+                let rankingData = data ? Object.values(data) : [];
+                
+                // Remove o jogador
+                rankingData = rankingData.filter(j => j.nome !== nomeJogador);
+                
+                // Converte para objeto
+                const rankingObject = {};
+                rankingData.forEach((jogador, index) => {
+                    rankingObject[jogador.id || `jogador_${index}`] = jogador;
+                });
+                
+                // Atualiza o ranking
+                const updateResponse = await fetch(firebaseUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(rankingObject)
+                });
+                
+                if (updateResponse.ok) {
+                    console.log(`Jogador ${nomeJogador} removido do ranking online`);
+                } else {
+                    throw new Error('Falha ao atualizar ranking');
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao remover jogador do ranking online:', error);
+            alert('Erro ao remover jogador. Tente novamente.');
+        }
         
         gerenciarRanking();
     }
@@ -1366,3 +1487,5 @@ function iniciarContadorBoost() {
         tempoBoostElement.textContent = `${minutos}:${segundos.toString().padStart(2, '0')}`;
     }, 1000);
 }
+
+
