@@ -142,7 +142,7 @@ async function salvarRankingGlobalAPI(jogador) {
         
         // Se nenhuma API funcionou, usa localStorage expandido
         if (!apiUsada) {
-            console.log('🔄 Usando sistema de backup localStorage expandido');
+            console.log('🔄 Nenhuma API funcionou, usando sistema de backup');
             usarRankingLocal = true;
             return await salvarRankingBackup(jogador);
         }
@@ -168,6 +168,8 @@ async function salvarRankingGlobalAPI(jogador) {
                 versao: '2.0'
             };
             
+            console.log('💾 Tentando salvar', rankingData.length, 'jogadores via', apiUsada.name);
+            
             const updateResponse = await fetch(apiUsada.url, {
                 method: 'PUT',
                 headers: {
@@ -179,12 +181,16 @@ async function salvarRankingGlobalAPI(jogador) {
             
             if (updateResponse.ok) {
                 console.log('✅ Ranking online salvo via', apiUsada.name);
+                console.log('🎯 Jogador salvo:', jogador.nome, 'R$', jogador.saldo);
                 usarRankingLocal = false;
             } else {
-                throw new Error('Falha ao salvar');
+                console.log('❌ Resposta da API não OK:', updateResponse.status);
+                throw new Error('Falha ao salvar - Status: ' + updateResponse.status);
             }
         } catch (saveError) {
-            console.log('❌ Erro ao salvar, usando backup:', saveError.message);
+            console.log('❌ Erro ao salvar na API:', saveError.message);
+            console.log('🔄 Usando sistema de backup...');
+            usarRankingLocal = true;
             return await salvarRankingBackup(jogador);
         }
         
@@ -463,159 +469,15 @@ function entrarRanking() {
     }
     
     nomeJogadorRanking = nome;
-    console.log('🔍 DEBUG: Nome salvo:', nomeJogadorRanking);
-    
-    // Cria o jogador diretamente
-    const jogador = {
-        nome: nomeJogadorRanking,
-        saldo: saldo,
-        jogos: jogosJogados,
-        vitorias: vitorias,
-        timestamp: Date.now(),
-        id: nomeJogadorRanking + '_' + Date.now()
-    };
-    
-    console.log('🔍 DEBUG: Jogador criado:', jogador);
-    
-    // Salva diretamente no localStorage simples
-    let ranking = JSON.parse(localStorage.getItem('nukuzerabetRankingSimples') || '[]');
-    console.log('🔍 DEBUG: Ranking atual:', ranking);
-    
-    // Remove entrada antiga
-    ranking = ranking.filter(j => j.nome !== jogador.nome);
-    
-    // Adiciona nova entrada
-    ranking.push(jogador);
-    
-    // Salva
-    localStorage.setItem('nukuzerabetRankingSimples', JSON.stringify(ranking));
-    console.log('🔍 DEBUG: Ranking salvo:', ranking);
+    console.log('🌐 Nome salvo no ranking online:', nomeJogadorRanking);
     
     salvarDados();
-    mostrarRankingSimples();
-    alert('Você entrou no ranking!');
+    salvarNoRanking();
+    mostrarRanking();
+    alert('Você entrou no ranking online!');
 }
 
-function mostrarRankingSimples() {
-    console.log('🔍 DEBUG: Iniciando mostrarRankingSimples()');
-    
-    // Carrega ranking simples
-    let ranking = JSON.parse(localStorage.getItem('nukuzerabetRankingSimples') || '[]');
-    console.log('🔍 DEBUG: Ranking carregado:', ranking);
-    
-    // Ordena por saldo
-    ranking = ranking.sort((a, b) => b.saldo - a.saldo);
-    
-    let html = '<div style="background: rgba(0,255,0,0.2); border: 1px solid #00ff00; border-radius: 5px; padding: 10px; margin-bottom: 15px; text-align: center;"><p style="color: #00ff00; margin: 0;">💾 RANKING SIMPLES ATIVO</p></div>';
-    
-    html += '<div class="ranking-lista">';
-    
-    if (ranking.length === 0) {
-        html += '<p style="text-align: center; color: #aaa; padding: 40px;">Nenhum jogador no ranking ainda. Seja o primeiro!</p>';
-        console.log('🔍 DEBUG: Ranking vazio');
-    } else {
-        console.log('🔍 DEBUG: Mostrando', ranking.length, 'jogadores');
-        
-        ranking.forEach((jogador, index) => {
-            const posicao = index + 1;
-            let emoji = '';
-            
-            if (posicao === 1) emoji = '🥇';
-            else if (posicao === 2) emoji = '🥈';
-            else if (posicao === 3) emoji = '🥉';
-            
-            const taxaVitoria = jogador.jogos > 0 ? ((jogador.vitorias / jogador.jogos) * 100).toFixed(1) : 0;
-            
-            html += `
-                <div class="ranking-item">
-                    <div class="ranking-posicao">${emoji || posicao + 'º'}</div>
-                    <div class="ranking-info">
-                        <div class="ranking-nome">${jogador.nome}</div>
-                        <div class="ranking-stats">
-                            🎮 ${jogador.jogos} jogos | 🏆 ${jogador.vitorias} vitórias | 📊 ${taxaVitoria}% win rate
-                        </div>
-                    </div>
-                    <div class="ranking-saldo">R$ ${jogador.saldo}</div>
-                </div>
-            `;
-        });
-    }
-    
-    html += '</div>';
-    
-    // Verifica se há bloqueio ativo
-    const bloqueio = localStorage.getItem('nukuzerabetBloqueioRanking');
-    if (bloqueio) {
-        const tempoBloqueio = parseInt(bloqueio);
-        const tempoRestante = tempoBloqueio - Date.now();
-        
-        if (tempoRestante > 0) {
-            const horasRestantes = Math.ceil(tempoRestante / (1000 * 60 * 60));
-            html += `
-                <div style="background: rgba(255,0,0,0.2); border: 2px solid #ff4444; border-radius: 10px; padding: 15px; margin: 20px 0; text-align: center;">
-                    <h3 style="color: #ff4444; margin: 0 0 10px 0;">🚫 BLOQUEADO DO RANKING</h3>
-                    <p style="margin: 5px 0;">Tempo restante: <strong>${horasRestantes} horas</strong></p>
-                    <p style="margin: 5px 0; font-size: 0.9em;">Motivo: Adicionou fichas demais (vício em jogos)</p>
-                    <p style="margin: 10px 0 0 0; font-size: 0.8em; color: #ffaa00;">⚠️ Procure ajuda profissional para vício em jogos!</p>
-                </div>
-            `;
-        } else {
-            // Remove o bloqueio se já passou o tempo
-            localStorage.removeItem('nukuzerabetBloqueioRanking');
-        }
-    }
-    
-    if (nomeJogadorRanking && (!bloqueio || parseInt(bloqueio) <= Date.now())) {
-        html += '<button class="btn" onclick="atualizarPosicaoSimples()">ATUALIZAR MINHA POSIÇÃO</button>';
-    }
-    
-    document.getElementById('areaRanking').innerHTML = html;
-    console.log('🔍 DEBUG: HTML do ranking definido');
-}
-
-function atualizarPosicaoSimples() {
-    console.log('🔍 DEBUG: Atualizando posição simples');
-    
-    // Verifica se o jogador está bloqueado
-    const bloqueio = localStorage.getItem('nukuzerabetBloqueioRanking');
-    if (bloqueio) {
-        const tempoBloqueio = parseInt(bloqueio);
-        const tempoRestante = tempoBloqueio - Date.now();
-        
-        if (tempoRestante > 0) {
-            const horasRestantes = Math.ceil(tempoRestante / (1000 * 60 * 60));
-            alert(`🚫 Você está bloqueado do ranking!\n\nTempo restante: ${horasRestantes} horas\n\nMotivo: Adicionou fichas demais (vício em jogos)`);
-            return;
-        } else {
-            // Remove o bloqueio se já passou o tempo
-            localStorage.removeItem('nukuzerabetBloqueioRanking');
-        }
-    }
-    
-    if (!nomeJogadorRanking) {
-        alert('Você precisa entrar no ranking primeiro!');
-        return;
-    }
-    
-    // Cria o jogador com dados atuais
-    const jogador = {
-        nome: nomeJogadorRanking,
-        saldo: saldo,
-        jogos: jogosJogados,
-        vitorias: vitorias,
-        timestamp: Date.now(),
-        id: nomeJogadorRanking + '_' + Date.now()
-    };
-    
-    // Salva no ranking
-    let ranking = JSON.parse(localStorage.getItem('nukuzerabetRankingSimples') || '[]');
-    ranking = ranking.filter(j => j.nome !== jogador.nome);
-    ranking.push(jogador);
-    localStorage.setItem('nukuzerabetRankingSimples', JSON.stringify(ranking));
-    
-    mostrarRankingSimples();
-    alert('Posição atualizada! Saldo: R$ ' + saldo);
-}
+// Funções de ranking simples removidas - usando apenas sistema online
 
 async function mostrarRanking() {
     // Mostra loading primeiro
@@ -1591,7 +1453,10 @@ async function gerenciarRanking() {
         </div>
     `;
     
-    const ranking = await carregarRankingGlobal();
+    console.log('🔧 ADMIN: Carregando ranking para painel do dono...');
+    const ranking = await carregarRankingParaAdmin();
+    console.log('🔧 ADMIN: Ranking carregado:', ranking.length, 'jogadores');
+    console.log('🔧 ADMIN: Dados do ranking:', ranking);
     let html = `
         <div style="background: rgba(111, 66, 193, 0.1); border: 2px solid #6f42c1; border-radius: 10px; padding: 15px;">
             <h5 style="color: #6f42c1; margin-bottom: 15px;">🏆 GERENCIAR RANKING GLOBAL</h5>
@@ -1602,9 +1467,15 @@ async function gerenciarRanking() {
             </div>
     `;
     
-    if (ranking.length > 0) {
+    console.log('🔧 ADMIN: Verificando se ranking tem jogadores...');
+    
+    if (ranking && ranking.length > 0) {
+        console.log('🔧 ADMIN: Mostrando', ranking.length, 'jogadores no painel');
         html += '<h6 style="color: #6f42c1;">Jogadores no Ranking Global:</h6>';
+        
         ranking.forEach((jogador, index) => {
+            console.log('🔧 ADMIN: Processando jogador', index + 1, ':', jogador.nome);
+            
             const tempoDecorrido = Math.floor((Date.now() - jogador.timestamp) / 1000 / 60);
             const taxaVitoria = jogador.jogos > 0 ? ((jogador.vitorias / jogador.jogos) * 100).toFixed(1) : 0;
             
@@ -1621,46 +1492,180 @@ async function gerenciarRanking() {
             `;
         });
     } else {
+        console.log('🔧 ADMIN: Nenhum jogador encontrado no ranking');
         html += '<p style="text-align: center; color: #aaa;">Nenhum jogador no ranking global ainda</p>';
+        
+        // Vamos tentar carregar de sistemas locais como debug
+        const chaves = ['nukuzerabetRankingSimples', 'nukuzerabetRanking', 'nukuzera_ranking_br_1'];
+        let encontrouLocal = false;
+        
+        chaves.forEach(chave => {
+            try {
+                const dados = localStorage.getItem(chave);
+                if (dados) {
+                    const jogadores = JSON.parse(dados);
+                    if (jogadores.length > 0) {
+                        console.log('🔧 ADMIN: Encontrados', jogadores.length, 'jogadores em', chave);
+                        encontrouLocal = true;
+                    }
+                }
+            } catch (e) {
+                console.log('🔧 ADMIN: Erro ao verificar', chave);
+            }
+        });
+        
+        if (encontrouLocal) {
+            html += '<p style="text-align: center; color: #ffa500; margin-top: 10px;">⚠️ Jogadores encontrados no sistema local, mas não no online</p>';
+        }
     }
     
     html += '</div>';
     document.getElementById('resultadoPainelDono').innerHTML = html;
 }
 
+// Função específica para carregar ranking no painel do dono
+async function carregarRankingParaAdmin() {
+    console.log('🔧 ADMIN: Iniciando carregamento completo...');
+    
+    let rankingFinal = [];
+    
+    // 1. Tenta carregar da API online primeiro
+    try {
+        console.log('🔧 ADMIN: Tentando API online...');
+        const response = await fetch('https://api.jsonbin.io/v3/b/676194b5e41b4d34e4616b8a/latest', {
+            method: 'GET',
+            headers: {
+                'X-Master-Key': '$2a$10$8vF7qJ9mK4nL2pR6tS8uXeY3wZ5cA1bD9fG2hI6jK8lM0nO4pQ7rT'
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const jogadoresAPI = data.record?.jogadores || [];
+            console.log('🔧 ADMIN: API retornou', jogadoresAPI.length, 'jogadores');
+            
+            if (jogadoresAPI.length > 0) {
+                rankingFinal = jogadoresAPI;
+            }
+        }
+    } catch (e) {
+        console.log('🔧 ADMIN: Erro na API:', e.message);
+    }
+    
+    // 2. Se API não retornou dados, tenta sistemas locais
+    if (rankingFinal.length === 0) {
+        console.log('🔧 ADMIN: API vazia, tentando sistemas locais...');
+        
+        const chaves = [
+            'nukuzerabetRankingSimples',
+            'nukuzera_ranking_br_1',
+            'nukuzera_ranking_br_2', 
+            'nukuzera_ranking_br_3',
+            'nukuzerabetRanking'
+        ];
+        
+        const todosJogadores = [];
+        
+        chaves.forEach(chave => {
+            try {
+                const dados = localStorage.getItem(chave);
+                if (dados) {
+                    const jogadores = JSON.parse(dados);
+                    if (Array.isArray(jogadores)) {
+                        todosJogadores.push(...jogadores);
+                        console.log('🔧 ADMIN: Encontrados', jogadores.length, 'jogadores em', chave);
+                    }
+                }
+            } catch (e) {
+                console.log('🔧 ADMIN: Erro ao carregar', chave, ':', e.message);
+            }
+        });
+        
+        // Remove duplicatas (mesmo nome)
+        const jogadoresUnicos = {};
+        todosJogadores.forEach(jogador => {
+            if (!jogadoresUnicos[jogador.nome] || jogadoresUnicos[jogador.nome].timestamp < jogador.timestamp) {
+                jogadoresUnicos[jogador.nome] = jogador;
+            }
+        });
+        
+        rankingFinal = Object.values(jogadoresUnicos);
+        console.log('🔧 ADMIN: Total de jogadores únicos encontrados:', rankingFinal.length);
+    }
+    
+    // 3. Remove jogadores antigos (mais de 4 horas)
+    const quatroHorasAtras = Date.now() - (4 * 60 * 60 * 1000);
+    rankingFinal = rankingFinal.filter(j => j.timestamp > quatroHorasAtras);
+    
+    // 4. Ordena por saldo
+    rankingFinal = rankingFinal.sort((a, b) => b.saldo - a.saldo);
+    
+    console.log('🔧 ADMIN: Ranking final para admin:', rankingFinal.length, 'jogadores');
+    return rankingFinal;
+}
+
 async function limparRankingGlobal() {
     if (confirm('Tem certeza que deseja limpar todo o ranking ONLINE? Isso afetará todos os jogadores do Brasil!')) {
         try {
-            // Limpa todos os sistemas de ranking
+            console.log('🧹 Iniciando limpeza completa do ranking...');
+            
+            // Limpa o ranking online via API
+            let apiLimpa = false;
+            try {
+                const response = await fetch('https://api.jsonbin.io/v3/b/676194b5e41b4d34e4616b8a', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': '$2a$10$8vF7qJ9mK4nL2pR6tS8uXeY3wZ5cA1bD9fG2hI6jK8lM0nO4pQ7rT'
+                    },
+                    body: JSON.stringify({
+                        jogadores: [],
+                        ultimaAtualizacao: Date.now(),
+                        versao: '2.0'
+                    })
+                });
+                
+                if (response.ok) {
+                    console.log('✅ Ranking online limpo via API');
+                    apiLimpa = true;
+                } else {
+                    console.log('❌ Falha na API, limpando apenas local');
+                }
+            } catch (e) {
+                console.log('❌ Erro na API:', e.message);
+            }
+            
+            // Limpa todos os sistemas locais
             const chaves = [
                 'nukuzera_ranking_br_1',
                 'nukuzera_ranking_br_2', 
                 'nukuzera_ranking_br_3',
-                'nukuzerabetRanking'
+                'nukuzerabetRanking',
+                'nukuzerabetRankingSimples'
             ];
             
             chaves.forEach(chave => {
                 localStorage.removeItem(chave);
+                console.log('🗑️ Removido:', chave);
             });
             
-            const response = { ok: true }; // Simula sucesso
+            const statusMsg = apiLimpa ? 
+                'Ranking online e local limpos com sucesso!' : 
+                'Ranking local limpo (API indisponível)';
             
-            if (response.ok) {
-                document.getElementById('resultadoPainelDono').innerHTML = `
-                    <div class="codigo-sucesso">
-                        <p style="font-size: 1.3em;">✅ RANKING ONLINE LIMPO!</p>
-                        <p>Todos os jogadores foram removidos do ranking</p>
-                    </div>
-                `;
-            } else {
-                throw new Error('Falha na API');
-            }
+            document.getElementById('resultadoPainelDono').innerHTML = `
+                <div class="codigo-sucesso">
+                    <p style="font-size: 1.3em;">✅ RANKING LIMPO!</p>
+                    <p>${statusMsg}</p>
+                </div>
+            `;
+            
         } catch (error) {
-            console.error('Erro ao limpar ranking online:', error);
+            console.error('Erro ao limpar ranking:', error);
             document.getElementById('resultadoPainelDono').innerHTML = `
                 <div class="codigo-erro">
                     <p style="font-size: 1.3em;">❌ ERRO AO LIMPAR RANKING</p>
-                    <p>Falha na conexão com o servidor</p>
+                    <p>Erro: ${error.message}</p>
                 </div>
             `;
         }
@@ -1686,12 +1691,59 @@ function removerBloqueios() {
 async function removerJogadorRankingGlobal(nomeJogador) {
     if (confirm(`Remover ${nomeJogador} do ranking ONLINE?`)) {
         try {
-            // Remove de todos os sistemas
+            console.log('🗑️ Removendo jogador:', nomeJogador);
+            
+            // Tenta remover da API online primeiro
+            let apiRemoveu = false;
+            try {
+                // Carrega ranking atual da API
+                const response = await fetch('https://api.jsonbin.io/v3/b/676194b5e41b4d34e4616b8a/latest', {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': '$2a$10$8vF7qJ9mK4nL2pR6tS8uXeY3wZ5cA1bD9fG2hI6jK8lM0nO4pQ7rT'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    let rankingData = data.record?.jogadores || [];
+                    
+                    // Remove o jogador
+                    const rankingOriginal = rankingData.length;
+                    rankingData = rankingData.filter(j => j.nome !== nomeJogador);
+                    
+                    if (rankingData.length < rankingOriginal) {
+                        // Atualiza o ranking na API
+                        const updateResponse = await fetch('https://api.jsonbin.io/v3/b/676194b5e41b4d34e4616b8a', {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Master-Key': '$2a$10$8vF7qJ9mK4nL2pR6tS8uXeY3wZ5cA1bD9fG2hI6jK8lM0nO4pQ7rT'
+                            },
+                            body: JSON.stringify({
+                                jogadores: rankingData,
+                                ultimaAtualizacao: Date.now(),
+                                versao: '2.0'
+                            })
+                        });
+                        
+                        if (updateResponse.ok) {
+                            console.log('✅ Jogador removido da API online');
+                            apiRemoveu = true;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('❌ Erro na API:', e.message);
+            }
+            
+            // Remove de todos os sistemas locais
             const chaves = [
                 'nukuzera_ranking_br_1',
                 'nukuzera_ranking_br_2', 
                 'nukuzera_ranking_br_3',
-                'nukuzerabetRanking'
+                'nukuzerabetRanking',
+                'nukuzerabetRankingSimples'
             ];
             
             chaves.forEach(chave => {
@@ -1701,21 +1753,21 @@ async function removerJogadorRankingGlobal(nomeJogador) {
                         let jogadores = JSON.parse(dados);
                         jogadores = jogadores.filter(j => j.nome !== nomeJogador);
                         localStorage.setItem(chave, JSON.stringify(jogadores));
+                        console.log('🗑️ Removido de:', chave);
                     }
                 } catch (e) {
                     console.log('Erro ao limpar chave', chave);
                 }
             });
             
-            const updateResponse = { ok: true }; // Simula sucesso
-                
-            if (updateResponse.ok) {
-                console.log(`Jogador ${nomeJogador} removido do ranking online`);
-            } else {
-                throw new Error('Falha ao atualizar ranking');
-            }
+            const statusMsg = apiRemoveu ? 
+                `Jogador ${nomeJogador} removido do ranking online e local` :
+                `Jogador ${nomeJogador} removido do ranking local (API indisponível)`;
+            
+            console.log('✅', statusMsg);
+            
         } catch (error) {
-            console.error('Erro ao remover jogador do ranking online:', error);
+            console.error('Erro ao remover jogador:', error);
             alert('Erro ao remover jogador. Tente novamente.');
         }
         
